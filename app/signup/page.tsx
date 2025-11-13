@@ -4,17 +4,25 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    if (password !== confirmPassword) {
+      setError("Passwords do not match!");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -22,23 +30,24 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/product");
+      setSuccess("Signup successful! Please check your email to verify your account.");
+      // Optionally redirect to login
+      setTimeout(() => {
+        router.push("/");
+      }, 3000);
     }
-  };
-
-  const handleSignupRedirect = () => {
-    router.push("/signup");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <form 
-        onSubmit={handleLogin} 
+        onSubmit={handleSignup} 
         className="bg-white p-6 rounded shadow-md w-full max-w-sm"
       >
-        <h1 className="text-2xl font-bold mb-4">Login</h1>
+        <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
 
         {error && <p className="text-red-500 mb-2">{error}</p>}
+        {success && <p className="text-green-500 mb-2">{success}</p>}
 
         <input
           type="email"
@@ -58,17 +67,18 @@ export default function LoginPage() {
           required
         />
 
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full p-2 mb-3 border rounded"
+          required
+        />
+
         <button 
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mb-2"
-        >
-          Login
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSignupRedirect}
-          className="w-full bg-gray-200 text-gray-800 p-2 rounded hover:bg-gray-300"
+          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
         >
           Sign Up
         </button>
