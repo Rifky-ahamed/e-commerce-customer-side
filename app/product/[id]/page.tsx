@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useCart } from "@/context/CartContext";
 
@@ -14,9 +14,11 @@ interface Product {
 }
 
 export default function ProductDetailsPage() {
-  const { id } = useParams(); // get dynamic product ID from URL
+  const { id } = useParams();
+  const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -51,8 +53,21 @@ export default function ProductDetailsPage() {
   if (loading) return <p className="p-8 text-center">Loading product...</p>;
   if (!product) return <p className="p-8 text-center">Product not found.</p>;
 
+  // ✅ Handle add to cart + show popup
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.image_url,
+    });
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 4000); // auto hide popup after 4s
+  };
+
   return (
-    <main className="p-8 flex flex-col md:flex-row items-center gap-8 max-w-4xl mx-auto bg-white shadow-lg rounded-2xl">
+    <main className="relative p-8 flex flex-col md:flex-row items-center gap-8 max-w-4xl mx-auto bg-white shadow-lg rounded-2xl">
       {/* 🖼️ Product Image */}
       <img
         src={product.image_url}
@@ -70,20 +85,32 @@ export default function ProductDetailsPage() {
 
         {/* 🛒 Add to Cart Button */}
         <button
-          onClick={() =>
-            addToCart({
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              quantity: 1,
-              image: product.image_url,
-            })
-          }
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+          onClick={handleAddToCart}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition transform"
         >
           Add to Cart
         </button>
+
+        {/* 🧭 Go to Cart Button */}
+       <button
+  onClick={() => router.push("/cart")}
+  className="mt-5 px-6 py-2 rounded-lg border border-blue-600 text-blue-600 font-semibold hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+>
+  🛍️ Go to Cart
+</button>
+
       </div>
+
+      {/* ✅ Popup Message */}
+      {showPopup && (
+        <div
+          onClick={() => router.push("/cart")}
+          className="absolute top-5 right-5 bg-green-500 text-white px-5 py-3 rounded-xl shadow-lg cursor-pointer hover:bg-green-600 transition"
+        >
+          ✅ Successfully added <strong>{product.name}</strong> to your cart!
+          <p className="text-sm mt-1 underline text-white/90">Click to view cart</p>
+        </div>
+      )}
     </main>
   );
 }

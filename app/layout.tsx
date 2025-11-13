@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { UserProvider } from "@/context/UserContext";
-import { CartProvider } from "@/context/CartContext"; // ✅ import it
+import { AuthProvider } from "@/context/AuthContext"; // ✅ new AuthProvider
+import { CartProvider } from "@/context/CartContext"; 
+// Optional: you can remove UserProvider if AuthProvider replaces it
+// import { UserProvider } from "@/context/UserContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,14 +29,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* ✅ Wrap both providers */}
-        <UserProvider>
+        {/* ✅ Wrap with AuthProvider first */}
+        <AuthProvider>
           <CartProvider>
             {children}
           </CartProvider>
-        </UserProvider>
+        </AuthProvider>
       </body>
     </html>
   );
-  
 }
