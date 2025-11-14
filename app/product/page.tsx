@@ -16,17 +16,43 @@ interface Product {
 export default function ProductListingPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
+  // 🔍 Check login status
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) setIsLoggedIn(true);
+      else setIsLoggedIn(false);
+    };
+
+    checkUser();
+  }, []);
+
+  // 🔐 Logout handler
   const handleLogout = async () => {
+    if (!isLoggedIn) {
+      alert("❌ You are not logged in. Please login first.");
+      return;
+    }
+
+    // Clear localStorage & sessionStorage
+    localStorage.clear();
+    sessionStorage.clear();
+
     const { error } = await supabase.auth.signOut();
+
     if (error) {
       console.error("Logout error:", error.message);
+      alert("Error while logging out!");
     } else {
+      alert("Logout successful!");
       router.push("/");
     }
   };
 
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -56,7 +82,7 @@ export default function ProductListingPage() {
 
   return (
     <main className="p-8">
-      {/* Logout Button */}
+      {/* 💠 Logout Button */}
       <div className="flex justify-end mb-6">
         <button
           onClick={handleLogout}

@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/lib/supabaseClient";
 import { User, Session } from "@supabase/supabase-js";
 
-// ✅ Define context type
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -20,47 +19,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Ensure the Supabase user row exists in public.users
+  // Ensure user exists inside your `users` table
   const ensureUserRow = async (supabaseUser: User) => {
     try {
       const { id, email, user_metadata } = supabaseUser;
 
-      // Use name from user_metadata if exists, else empty string
       const name = (user_metadata as any)?.name || "";
 
-      // Upsert the user row
       await supabase.from("users").upsert({
-        id,       // auth user ID
+        id,
         email,
-        name,     // store name if available
+        name,
         created_at: new Date(),
       });
     } catch (err) {
-      console.error("Failed to ensure user row in database:", err);
+      console.error("Failed to ensure user row in DB:", err);
     }
   };
 
   useEffect(() => {
-    // 1️⃣ Get initial user
-    const getUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) {
-        setUser(data.user);
-        await ensureUserRow(data.user);
+    const loadSession = async () => {
+      // 1️⃣ Load session instantly from cache (FAST)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      // If user exists → ensure user row
+      if (currentUser) {
+        await ensureUserRow(currentUser);
       }
-      setLoading(false);
+
+      setLoading(false); // Finished checking
     };
 
-    getUser();
+    loadSession();
 
-    // 2️⃣ Listen for auth changes
+    // 2️⃣ Listen for any login/logout/session refresh
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event: string, session: Session | null) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+      async (_event, session: Session | null) => {
+        const authUser = session?.user ?? null;
+        setUser(authUser);
 
-        if (currentUser) {
-          await ensureUserRow(currentUser); // upsert on every login/signup
+        if (authUser) {
+          await ensureUserRow(authUser);
         }
       }
     );
@@ -75,9 +79,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// ✅ Custom hook
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used inside AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
   return context;
 }
