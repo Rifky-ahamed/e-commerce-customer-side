@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import {
   NavigationMenu,
@@ -29,7 +30,24 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all products
+  // 🔥 Prevent the toast from firing multiple times
+  const toastShown = useRef(false);
+
+  // 🔥 Show login / not-login popup
+  useEffect(() => {
+    if (!authLoading && !toastShown.current) {
+      toastShown.current = true; // prevent duplicates
+
+      if (user) {
+        const username = user.email?.split("@")[0] || "User";
+        toast.success(`You are logged in as ${username}`);
+      } else {
+        toast.error("You are not logged in to this website");
+      }
+    }
+  }, [authLoading, user]);
+
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       const { data, error } = await supabase.from("products").select("*");
@@ -46,6 +64,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+
       {/* Navigation Menu */}
       <NavigationMenu className="bg-white shadow-md px-6 py-4 mb-6">
         <NavigationMenuList className="flex justify-between w-full items-center">
@@ -90,7 +109,6 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* Login/Signup buttons for non-logged-in users */}
             {!user && (
               <>
                 <Button onClick={() => router.push("/login")}>Login</Button>
@@ -111,6 +129,7 @@ export default function Dashboard() {
           <p>Loading stats...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
             {/* Total Products */}
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold mb-2">Total Products</h3>
@@ -140,6 +159,7 @@ export default function Dashboard() {
                 Rs.{user ? getTotal().toLocaleString() : 0}
               </p>
             </div>
+
           </div>
         )}
       </main>

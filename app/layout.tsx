@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext"; // ✅ new AuthProvider
-import { CartProvider } from "@/context/CartContext"; 
-// Optional: you can remove UserProvider if AuthProvider replaces it
-// import { UserProvider } from "@/context/UserContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
+import { Toaster } from "sonner"; // ✅ ADD THIS
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,18 +22,23 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* ✅ Wrap with AuthProvider first */}
+        
+        {/* 🔥 Needed for toast popup messages */}
+        <Toaster richColors position="top-center" />  
+
+        {/* Providers */}
         <AuthProvider>
           <CartProvider>
             {children}
           </CartProvider>
         </AuthProvider>
+
       </body>
     </html>
   );
