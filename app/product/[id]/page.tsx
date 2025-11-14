@@ -6,11 +6,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useCart } from "@/context/CartContext";
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
   price: number;
   description: string;
-  image_url?: string;
+  image_url: string; // ✅ Make required
 }
 
 export default function ProductDetailsPage() {
@@ -26,22 +26,23 @@ export default function ProductDetailsPage() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("id", id)
+        .eq("id", Number(id))
         .single();
 
       if (error) {
         console.error("Error fetching product:", error);
-      } else {
+      } else if (data) {
         setProduct({
-          id: data.id.toString(),
+          id: data.id,
           name: data.name,
           price: Number(data.price),
           description: data.description,
           image_url:
-            data.image_url ||
-            `https://via.placeholder.com/400x400?text=${encodeURIComponent(
-              data.name
-            )}`,
+            data.image_url && data.image_url !== ""
+              ? data.image_url
+              : `https://via.placeholder.com/400x400?text=${encodeURIComponent(
+                  data.name
+                )}`, // ✅ Always a string
         });
       }
       setLoading(false);
@@ -53,29 +54,28 @@ export default function ProductDetailsPage() {
   if (loading) return <p className="p-8 text-center">Loading product...</p>;
   if (!product) return <p className="p-8 text-center">Product not found.</p>;
 
-  // ✅ Handle add to cart + show popup
-  const handleAddToCart = () => {
-    addToCart({
+  const handleAddToCart = async () => {
+    await addToCart({
       id: product.id,
+      quantity: 1,
       name: product.name,
       price: product.price,
-      quantity: 1,
-      image: product.image_url,
+      image: product.image_url, // ✅ Already string
     });
     setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 4000); // auto hide popup after 4s
+    setTimeout(() => setShowPopup(false), 4000);
   };
 
   return (
     <main className="relative p-8 flex flex-col md:flex-row items-center gap-8 max-w-4xl mx-auto bg-white shadow-lg rounded-2xl">
-      {/* 🖼️ Product Image */}
+      {/* Product Image */}
       <img
-        src={product.image_url}
+        src={product.image_url} // ✅ Always string
         alt={product.name}
         className="w-72 h-72 object-cover rounded-xl border"
       />
 
-      {/* 🧾 Product Info */}
+      {/* Product Info */}
       <div className="flex-1 text-center md:text-left">
         <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
         <p className="text-gray-600 mb-4">{product.description}</p>
@@ -83,7 +83,6 @@ export default function ProductDetailsPage() {
           Rs.{product.price.toLocaleString()}
         </p>
 
-        {/* 🛒 Add to Cart Button */}
         <button
           onClick={handleAddToCart}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 active:scale-95 transition transform"
@@ -91,17 +90,15 @@ export default function ProductDetailsPage() {
           Add to Cart
         </button>
 
-        {/* 🧭 Go to Cart Button */}
-       <button
-  onClick={() => router.push("/cart")}
-  className="mt-5 px-6 py-2 rounded-lg border border-blue-600 text-blue-600 font-semibold hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
->
-  🛍️ Go to Cart
-</button>
-
+        <button
+          onClick={() => router.push("/cart")}
+          className="mt-5 px-6 py-2 rounded-lg border border-blue-600 text-blue-600 font-semibold hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+        >
+          🛍️ Go to Cart
+        </button>
       </div>
 
-      {/* ✅ Popup Message */}
+      {/* Popup Message */}
       {showPopup && (
         <div
           onClick={() => router.push("/cart")}

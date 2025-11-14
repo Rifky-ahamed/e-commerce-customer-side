@@ -1,93 +1,139 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/context/AuthContext";
 
-// 🛒 Define cart item structure
+// ✅ CartItem now includes name, price, and image as required
 export interface CartItem {
-  id: string;
+  id: number;        // product id
+  quantity: number;
   name: string;
   price: number;
-  quantity: number;
-  image?: string;
+  image: string;
 }
 
-// 🧠 Define context type
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (product: CartItem) => Promise<void>;
+  removeFromCart: (productId: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   getTotal: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// 🧩 Provider component
-export const CartProvider = ({ children }: { children: ReactNode }) => {
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // ✅ Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
+  // Load cart for current user
+  const loadCart = async () => {
+    if (!user) {
+      setCart([]);
+      return;
     }
-  }, []);
 
-  // ✅ Save cart to localStorage whenever it changes
+    // Join with products table to get name, price, image
+    const { data, error } = await supabase
+      .from("cart")
+      .select(`
+        product_id,
+        quantity,
+        products(name, price, image_url)
+      `)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error loading cart:", error);
+      return;
+    }
+
+    if (data) {
+      const formattedCart = data.map((item: any) => ({
+        id: item.product_id,
+        quantity: item.quantity,
+        name: item.products.name,
+        price: Number(item.products.price),
+        image: item.products.image_url || "/placeholder.png",
+      }));
+      setCart(formattedCart);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    loadCart();
+  }, [user]);
 
-  // ✅ Add item to cart
-  const addToCart = (item: CartItem) => {
-    setCart((prevCart) => {
-      const existing = prevCart.find((p) => p.id === item.id);
-      if (existing) {
-        // If already in cart, just update quantity
-        return prevCart.map((p) =>
-          p.id === item.id ? { ...p, quantity: p.quantity + item.quantity } : p
-        );
-      }
-      return [...prevCart, item];
-    });
+  // Add a product to cart
+  const addToCart = async (product: CartItem) => {
+    if (!user) return;
+
+    // Check if item already exists
+    const { data: existing } = await supabase
+      .from("cart")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("product_id", product.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("cart")
+        .update({ quantity: existing.quantity + product.quantity })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("cart")
+        .insert({
+          user_id: user.id,
+          product_id: product.id,
+          quantity: product.quantity,
+        });
+    }
+
+    await loadCart();
   };
 
-  // ✅ Remove item
-  const removeFromCart = (id: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+  const removeFromCart = async (productId: number) => {
+    if (!user) return;
+
+    await supabase
+      .from("cart")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("product_id", productId);
+
+    await loadCart();
   };
 
-  // ✅ Update quantity
-  const updateQuantity = (id: string, quantity: number) => {
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(quantity, 1) } : item
-      )
-    );
+  const clearCart = async () => {
+    if (!user) return;
+
+    await supabase
+      .from("cart")
+      .delete()
+      .eq("user_id", user.id);
+
+    setCart([]);
   };
 
-  // ✅ Clear cart
-  const clearCart = () => setCart([]);
-
-  // ✅ Get total price
+  // ✅ Total price calculation
   const getTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, getTotal }}
+      value={{ cart, addToCart, removeFromCart, clearCart, getTotal }}
     >
       {children}
     </CartContext.Provider>
   );
 };
 
-// 🧠 Custom hook to use context
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) throw new Error("useCart must be used inside CartProvider");
+  if (!context) throw new Error("useCart must be used within a CartProvider");
   return context;
 };

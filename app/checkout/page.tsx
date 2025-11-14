@@ -1,19 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, getTotal, clearCart } = useCart();
+  const { cart, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Fetch product details for cart items
+  const loadProducts = async () => {
+    if (cart.length === 0) {
+      setProducts([]);
+      return;
+    }
+
+    const ids = cart.map((item) => item.id);
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, name, price")
+      .in("id", ids);
+
+    if (!error && data) {
+      setProducts(data.map(p => ({ id: p.id, name: p.name, price: Number(p.price) })));
+    } else {
+      console.error("Error fetching product details:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, [cart]);
 
   if (authLoading) {
     return <p className="p-8 text-center">Loading...</p>;
@@ -28,6 +59,12 @@ export default function CheckoutPage() {
     );
   }
 
+  // Calculate total price
+  const totalPrice = cart.reduce((sum, item) => {
+    const product = products.find((p) => p.id === item.id);
+    return sum + (product?.price || 0) * item.quantity;
+  }, 0);
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
@@ -36,41 +73,34 @@ export default function CheckoutPage() {
     setSuccess("");
 
     try {
-      // ✅ User already exists in 'users' table via AuthContext
-      // Fetch user row
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", user.id)
-        .single();
-
-      if (userError || !userData) throw new Error("User not found in database");
-
-      const userId = userData.id;
-
-      // 1️⃣ Create order
+      // 1️⃣ Create order with total price
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
-        .insert([{ user_id: userId, total: getTotal() }])
+        .insert([{ user_id: user.id, total: totalPrice }])
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError || !orderData) throw orderError || new Error("Failed to create order");
+
       const orderId = orderData.id;
 
-      // 2️⃣ Insert order items
-      const orderItems = cart.map((item) => ({
-        order_id: orderId,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-      }));
+      // 2️⃣ Prepare order items
+      const orderItems = cart.map((item) => {
+        const product = products.find((p) => p.id === item.id);
+        return {
+          order_id: orderId,
+          product_id: item.id,
+          quantity: item.quantity,
+          price: product?.price || 0,
+        };
+      });
 
+      // 3️⃣ Insert order items
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // 3️⃣ Clear cart
-      clearCart();
+      // 4️⃣ Clear cart
+      await clearCart();
 
       setSuccess("✅ Order placed successfully!");
       setTimeout(() => router.push("/"), 2000);
@@ -90,17 +120,20 @@ export default function CheckoutPage() {
       ) : (
         <>
           <ul className="space-y-4 mb-6">
-            {cart.map((item) => (
-              <li key={item.id} className="flex justify-between border-b pb-2">
-                <span>{item.name} x {item.quantity}</span>
-                <span>Rs.{(item.price * item.quantity).toLocaleString()}</span>
-              </li>
-            ))}
+            {cart.map((item) => {
+              const product = products.find((p) => p.id === item.id);
+              return (
+                <li key={item.id} className="flex justify-between border-b pb-2">
+                  <span>{product?.name || "Unknown Product"} x {item.quantity}</span>
+                  <span>Rs.{((product?.price || 0) * item.quantity).toLocaleString()}</span>
+                </li>
+              );
+            })}
           </ul>
 
           <div className="flex justify-between font-bold text-lg mb-6">
             <span>Total:</span>
-            <span>Rs.{getTotal().toLocaleString()}</span>
+            <span>Rs.{totalPrice.toLocaleString()}</span>
           </div>
 
           {error && <p className="text-red-500 mb-3">{error}</p>}
