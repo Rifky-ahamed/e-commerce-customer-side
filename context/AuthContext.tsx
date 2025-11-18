@@ -19,27 +19,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Ensure user exists inside your `users` table
-  const ensureUserRow = async (supabaseUser: User) => {
-    try {
-      const { id, email, user_metadata } = supabaseUser;
+  // ✅ Ensure user row in DB (runs in background)
+// ✅ Ensure user row in DB (runs in background)
+const ensureUserRow = async (supabaseUser: User) => {
+  try {
+    const { id, email, user_metadata } = supabaseUser;
+    const name = (user_metadata as any)?.name || "";
 
-      const name = (user_metadata as any)?.name || "";
+    // Await the upsert
+    await supabase.from("users").upsert({
+      id,
+      email,
+      name,
+      created_at: new Date(),
+    });
 
-      await supabase.from("users").upsert({
-        id,
-        email,
-        name,
-        created_at: new Date(),
-      });
-    } catch (err) {
-      console.error("Failed to ensure user row in DB:", err);
-    }
-  };
+  } catch (err) {
+    console.error("Failed to ensure user row:", err);
+  }
+};
+
 
   useEffect(() => {
     const loadSession = async () => {
-      // 1️⃣ Load session instantly from cache (FAST)
+      // 1️⃣ Get session immediately
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -47,27 +50,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
-      // If user exists → ensure user row
+      // 2️⃣ Ensure user row asynchronously
       if (currentUser) {
-        await ensureUserRow(currentUser);
+        ensureUserRow(currentUser); // no await → non-blocking
       }
 
-      setLoading(false); // Finished checking
+      // 3️⃣ Stop loading immediately
+      setLoading(false);
     };
 
     loadSession();
 
-    // 2️⃣ Listen for any login/logout/session refresh
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session: Session | null) => {
-        const authUser = session?.user ?? null;
-        setUser(authUser);
+    // 4️⃣ Listen for login/logout/session changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
+      const authUser = session?.user ?? null;
+      setUser(authUser);
 
-        if (authUser) {
-          await ensureUserRow(authUser);
-        }
+      if (authUser) {
+        ensureUserRow(authUser); // background upsert
       }
-    );
+    });
 
     return () => listener.subscription.unsubscribe();
   }, []);
