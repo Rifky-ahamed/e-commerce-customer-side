@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export default function SignupPage() {
-  const [name, setName] = useState(""); // Added name field
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("user"); // role field
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -31,21 +32,28 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // Sign up with Supabase and add 'name' as user_metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { name }, // store name in metadata
-        },
+        options: { data: { name } },
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // Optional: you can force email verification before login
-        // Redirect to dashboard after signup
-        router.push("/"); // app/page.tsx
+        // Insert into users table with role
+       // Safe upsert: if email already exists, update name & role
+const { error: dbError } = await supabase
+  .from("users")
+  .upsert(
+    { id: data.user.id, email, name, role },
+    { onConflict: "email" } // prevent duplicate key error
+  );
+
+if (dbError) throw dbError;
+
+
+        router.push("/"); // redirect
       }
     } catch (err: any) {
       setError(err.message || "Signup failed. Try again.");
@@ -99,6 +107,16 @@ export default function SignupPage() {
           className="w-full p-2 mb-3 border rounded"
           required
         />
+
+        {/* Role Select */}
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="w-full p-2 mb-3 border rounded"
+        >
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing up..." : "Sign Up"}

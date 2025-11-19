@@ -18,19 +18,37 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Sign in with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // 1️⃣ Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        // Login successful
-        router.push("/"); // Redirect to dashboard
-      } else {
+      if (authError) throw authError;
+      if (!authData.user) {
         setError("Login failed. Please check your credentials.");
+        return;
+      }
+
+      const userId = authData.user.id;
+
+      // 2️⃣ Fetch user role from your users table
+      const { data: userRecord, error: dbError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", userId)
+        .single(); // fetch a single record
+
+      if (dbError) throw dbError;
+      if (!userRecord) throw new Error("User role not found!");
+
+      const role = userRecord.role;
+
+      // 3️⃣ Redirect based on role (you can customize)
+      if (role === "admin") {
+        router.push("/admin"); // admin dashboard page
+      } else {
+        router.push("/"); // normal user dashboard
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");

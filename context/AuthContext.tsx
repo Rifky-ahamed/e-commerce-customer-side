@@ -7,6 +7,8 @@ import { User, Session } from "@supabase/supabase-js";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  role: string | null;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,31 +20,48 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
-  // ✅ Ensure user row in DB (runs in background)
-// ✅ Ensure user row in DB (runs in background)
-const ensureUserRow = async (supabaseUser: User) => {
-  try {
-    const { id, email, user_metadata } = supabaseUser;
-    const name = (user_metadata as any)?.name || "";
+  // Ensure user exists in DB and fetch their role
+  const ensureUserRow = async (supabaseUser: User) => {
+    try {
+      const { id, email, user_metadata } = supabaseUser;
+      const name = (user_metadata as any)?.name || "";
 
-    // Await the upsert
-    await supabase.from("users").upsert({
-      id,
-      email,
-      name,
-      created_at: new Date(),
-    });
+      // Check if user exists
+      const { data: existingUser, error: fetchError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", id)
+        .single();
 
-  } catch (err) {
-    console.error("Failed to ensure user row:", err);
-  }
-};
+      if (fetchError && fetchError.code !== "PGRST116") {
+        // Ignore "row not found", throw other errors
+        throw fetchError;
+      }
 
+      if (!existingUser) {
+        // Insert new user with default role 'user'
+        await supabase.from("users").insert({
+          id,
+          email,
+          name,
+          role: "user", // default
+          created_at: new Date(),
+        });
+        setRole("user");
+      } else {
+        // Use existing role
+        setRole(existingUser.role);
+      }
+    } catch (err) {
+      console.error("Failed to ensure user row:", err);
+      setRole("user"); // fallback
+    }
+  };
 
   useEffect(() => {
     const loadSession = async () => {
-      // 1️⃣ Get session immediately
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -50,24 +69,23 @@ const ensureUserRow = async (supabaseUser: User) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
-      // 2️⃣ Ensure user row asynchronously
       if (currentUser) {
-        ensureUserRow(currentUser); // no await → non-blocking
+        await ensureUserRow(currentUser);
       }
 
-      // 3️⃣ Stop loading immediately
       setLoading(false);
     };
 
     loadSession();
 
-    // 4️⃣ Listen for login/logout/session changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
       const authUser = session?.user ?? null;
       setUser(authUser);
 
       if (authUser) {
-        ensureUserRow(authUser); // background upsert
+        ensureUserRow(authUser);
+      } else {
+        setRole(null);
       }
     });
 
@@ -75,7 +93,7 @@ const ensureUserRow = async (supabaseUser: User) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, role, isAdmin: role === "admin" }}>
       {children}
     </AuthContext.Provider>
   );
