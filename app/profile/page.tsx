@@ -7,12 +7,20 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+// ✅ Types for orders and nested order_items
+interface OrderItem {
+  quantity: number;
+  price: number;
+  product: {
+    name: string;
+  } | null;
+}
+
 interface Order {
   id: string;
-  product_name: string;
-  quantity: number;
-  total_price: number;
+  total: number;
   created_at: string;
+  order_items: OrderItem[];
 }
 
 export default function ProfilePage() {
@@ -21,34 +29,57 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Show toast for login status
+  // Redirect if not logged in
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        toast.error("You are not logged in!");
-        router.push("/login");
-      }
+    if (!authLoading && !user) {
+      toast.error("You are not logged in!");
+      router.push("/login");
     }
   }, [authLoading, user, router]);
 
-  // Fetch past orders
+  // Fetch orders + order_items + products
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      // ✅ Type-safe query
+   const { data, error } = await supabase
+  .from("orders")
+  .select(`
+    id,
+    total,
+    created_at,
+    order_items (
+      quantity,
+      price,
+      product:products(name)
+    )
+  `)
+  .eq("user_id", user.id)
+  .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching orders:", error);
-        toast.error("Failed to load orders");
-        setOrders([]);
-      } else {
-        setOrders(data);
-      }
+if (error) {
+  console.error(error);
+  setOrders([]);
+} else {
+  // Map each order to Order type safely
+  const typedOrders: Order[] = (data || []).map((order: any) => ({
+    id: order.id,
+    total: order.total,
+    created_at: order.created_at,
+    order_items: (order.order_items || []).map((item: any) => ({
+      quantity: item.quantity,
+      price: item.price,
+      product: {
+        name: item.product?.name || "Unknown",
+      },
+    })),
+  }));
+
+  setOrders(typedOrders);
+}
+
+
       setLoading(false);
     };
 
@@ -69,7 +100,16 @@ export default function ProfilePage() {
         <p><strong>Name:</strong> {user.user_metadata?.name || "N/A"}</p>
         <p><strong>Email:</strong> {user.email}</p>
         <p><strong>User ID:</strong> {user.id}</p>
-        <Button className="mt-4" onClick={() => supabase.auth.signOut().then(() => router.push("/"))}>
+
+        <Button
+          className="mt-4"
+          onClick={() =>
+            supabase.auth.signOut().then(() => {
+              toast.success("Logged out successfully");
+              router.push("/");
+            })
+          }
+        >
           Logout
         </Button>
       </div>
@@ -88,19 +128,36 @@ export default function ProfilePage() {
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border px-4 py-2">Order ID</th>
-                  <th className="border px-4 py-2">Product Name</th>
-                  <th className="border px-4 py-2">Quantity</th>
+                  <th className="border px-4 py-2">Products</th>
+                  <th className="border px-4 py-2">Quantities</th>
                   <th className="border px-4 py-2">Total Price</th>
                   <th className="border px-4 py-2">Order Date</th>
                 </tr>
               </thead>
+
               <tbody>
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td className="border px-4 py-2">{order.id}</td>
-                    <td className="border px-4 py-2">{order.product_name}</td>
-                    <td className="border px-4 py-2">{order.quantity}</td>
-                    <td className="border px-4 py-2">Rs.{order.total_price.toLocaleString()}</td>
+
+                    {/* Multiple products */}
+                    <td className="border px-4 py-2">
+                      {order.order_items.map((item, idx) => (
+                        <div key={idx}>{item.product?.name || "Unknown Product"}</div>
+                      ))}
+                    </td>
+
+                    {/* Multiple quantities */}
+                    <td className="border px-4 py-2">
+                      {order.order_items.map((item, idx) => (
+                        <div key={idx}>{item.quantity}</div>
+                      ))}
+                    </td>
+
+                    <td className="border px-4 py-2">
+                      Rs.{(order.total ?? 0).toLocaleString()}
+                    </td>
+
                     <td className="border px-4 py-2">
                       {new Date(order.created_at).toLocaleString()}
                     </td>
