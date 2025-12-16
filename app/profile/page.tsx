@@ -38,53 +38,45 @@ export default function ProfilePage() {
   }, [authLoading, user, router]);
 
   // Fetch orders + order_items + products
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
+ useEffect(() => {
+  const fetchOrders = async () => {
+    if (!user) return;
 
-      // ✅ Type-safe query
-   const { data, error } = await supabase
-  .from("orders")
-  .select(`
-    id,
-    total,
-    created_at,
-    order_items (
-      quantity,
-      price,
-      product:products(name)
-    )
-  `)
-  .eq("user_id", user.id)
-  .order("created_at", { ascending: false });
+    try {
+      const res = await fetch("/api/profile", {
+        headers: { "x-user-id": user.id },
+      });
 
-if (error) {
-  console.error(error);
-  setOrders([]);
-} else {
-  // Map each order to Order type safely
-  const typedOrders: Order[] = (data || []).map((order: any) => ({
-    id: order.id,
-    total: order.total,
-    created_at: order.created_at,
-    order_items: (order.order_items || []).map((item: any) => ({
-      quantity: item.quantity,
-      price: item.price,
-      product: {
-        name: item.product?.name || "Unknown",
-      },
-    })),
-  }));
+      const data = await res.json();
 
-  setOrders(typedOrders);
-}
+      if (!res.ok) {
+        console.error(data.error);
+        setOrders([]);
+      } else {
+        // Map to Order type
+        const typedOrders: Order[] = (data || []).map((order: any) => ({
+          id: order.id,
+          total: order.total,
+          created_at: order.created_at,
+          order_items: (order.order_items || []).map((item: any) => ({
+            quantity: item.quantity,
+            price: item.price,
+            product: { name: item.product?.name || "Unknown" },
+          })),
+        }));
 
-
+        setOrders(typedOrders);
+      }
+    } catch (err) {
+      console.error(err);
+      setOrders([]);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    fetchOrders();
-  }, [user]);
+  fetchOrders();
+}, [user]);
 
   if (authLoading || !user) {
     return <p className="p-8 text-center">Checking login status...</p>;

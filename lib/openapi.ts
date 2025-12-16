@@ -10,7 +10,9 @@ import {
   ProductsByIdResponseSchema,
   ProductSchema,
   ProductSchemaItem,
-  ProductsResponseSchema
+  ProductsResponseSchema,
+  OrderSchema,
+  OrdersResponseSchema
 } from "./schemas";
 
 export const registry = new OpenAPIRegistry();
@@ -31,7 +33,8 @@ registry.register("Product", ProductSchema);
 registry.register("ProductsByIdResponse", ProductsByIdResponseSchema);
 registry.register("ProductItem", ProductSchemaItem);
 registry.register("ProductsResponse", ProductsResponseSchema);
-
+registry.register("Order", OrderSchema);
+registry.register("OrdersResponse", OrdersResponseSchema);
 
 // Register Cart API path
 registry.registerPath({
@@ -186,6 +189,37 @@ registry.registerPath({
           schema: ErrorSchema,
         },
       },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/profile",
+  summary: "Get user orders",
+  description: "Fetch all orders for the authenticated user",
+  tags: ["Profile"],
+  request: {
+    headers: z.object({
+      "x-user-id": z.string().describe("User ID sent from frontend"),
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of orders",
+      content: {
+        "application/json": {
+          schema: OrdersResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Missing user ID",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    500: {
+      description: "Server error",
+      content: { "application/json": { schema: ErrorSchema } },
     },
   },
 });

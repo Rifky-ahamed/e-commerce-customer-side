@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabaseServer";
 import {
   CartProductsSchema,
   CartProductsResponseSchema,
-} from "@/lib/schemas/cart.schema";
+} from "@/lib/schemas";
 
 export async function POST(req: Request) {
   try {
