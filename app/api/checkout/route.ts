@@ -9,7 +9,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // ✅ Validate request
     const validation = CheckoutSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -23,7 +22,6 @@ export async function POST(req: Request) {
 
     const { user_id, items } = validation.data;
 
-    /* -------- 1️⃣ Fetch product prices -------- */
     const productIds = items.map((i) => i.product_id);
 
     const { data: products, error: productError } = await supabase
@@ -38,13 +36,12 @@ export async function POST(req: Request) {
       );
     }
 
-    /* -------- 2️⃣ Calculate total -------- */
     const total = items.reduce((sum, item) => {
       const product = products.find((p) => p.id === item.product_id);
       return sum + (product?.price || 0) * item.quantity;
     }, 0);
 
-    /* -------- 3️⃣ Create order -------- */
+  
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert([{ user_id, total }])
@@ -58,7 +55,7 @@ export async function POST(req: Request) {
       );
     }
 
-    /* -------- 4️⃣ Insert order items -------- */
+  
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.product_id);
       return {
@@ -80,7 +77,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Validate response (professional)
+   
     const response = CheckoutResponseSchema.parse({
       message: "Order placed successfully",
       order_id: order.id,

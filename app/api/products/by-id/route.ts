@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Validate response
     const response = ProductsByIdResponseSchema.parse(data);
 
     return NextResponse.json(response);

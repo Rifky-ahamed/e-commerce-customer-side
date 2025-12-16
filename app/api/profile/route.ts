@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // ✅ Validate response
+    
     const response = OrdersResponseSchema.parse(data || []);
 
     return NextResponse.json(response);

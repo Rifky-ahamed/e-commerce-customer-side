@@ -19,7 +19,7 @@ export default function ProductListingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // 🔍 Check login status
+  
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -30,14 +30,13 @@ export default function ProductListingPage() {
     checkUser();
   }, []);
 
-  // 🔐 Logout handler
+  
   const handleLogout = async () => {
     if (!isLoggedIn) {
       alert("❌ You are not logged in. Please login first.");
       return;
     }
 
-    // Clear localStorage & sessionStorage
     localStorage.clear();
     sessionStorage.clear();
 
@@ -52,7 +51,7 @@ export default function ProductListingPage() {
     }
   };
 
-  // Fetch products
+  
   useEffect(() => {
   const fetchProducts = async () => {
     setLoading(true);
@@ -75,7 +74,7 @@ export default function ProductListingPage() {
 
   return (
     <main className="p-8">
-      {/* 💠 Logout Button */}
+    
       <div className="flex justify-end mb-6">
         <button
           onClick={handleLogout}

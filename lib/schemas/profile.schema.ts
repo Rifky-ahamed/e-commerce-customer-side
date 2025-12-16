@@ -20,9 +20,9 @@ export const OrderSchema = z.object({
   order_items: z.array(OrderItemSchema),
 });
 
-/* -------- Response Schema (Array of orders) -------- */
+
 export const OrdersResponseSchema = z.array(OrderSchema);
 
-/* -------- Types -------- */
+
 export type Order = z.infer<typeof OrderSchema>;
 export type OrdersResponse = z.infer<typeof OrdersResponseSchema>;

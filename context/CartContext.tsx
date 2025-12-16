@@ -34,7 +34,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Join with products table to get name, price, image
     const { data, error } = await supabase
       .from("cart")
       .select(`
@@ -118,7 +117,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCart([]);
   };
 
-  // ✅ Total price calculation
+  
   const getTotal = () => {
     return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };

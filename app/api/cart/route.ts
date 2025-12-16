@@ -7,10 +7,10 @@ import {
 
 export async function POST(req: Request) {
   try {
-    // Parse JSON
+    
     const body = await req.json();
 
-    // ✅ Validate request using Zod
+    
     const validation = CartProductsSchema.safeParse(body);
 
     if (!validation.success) {
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // (Optional but professional) Validate response
+    
     const responseValidation =
       CartProductsResponseSchema.safeParse(data);
 

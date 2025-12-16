@@ -21,7 +21,7 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
 
-  // Fetch product details for cart items
+  
   const loadProducts = async () => {
   if (cart.length === 0) {
     setProducts([]);
@@ -58,7 +58,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // Calculate total price
+  
   const totalPrice = cart.reduce((sum, item) => {
     const product = products.find((p) => p.id === item.id);
     return sum + (product?.price || 0) * item.quantity;

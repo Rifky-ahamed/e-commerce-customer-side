@@ -21,13 +21,10 @@ export const CartProductSchema = z.object({
   image_url: z.string().url().nullable(),
 });
 
-/**
- * Response schema
- * Array of cart products
- */
+
 export const CartProductsResponseSchema = z.array(CartProductSchema);
 
-// Types
+
 export type CartProductsInput = z.infer<typeof CartProductsSchema>;
 export type CartProduct = z.infer<typeof CartProductSchema>;
 export type CartProductsResponse = z.infer<

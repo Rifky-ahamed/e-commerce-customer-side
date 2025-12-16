@@ -10,7 +10,7 @@ interface Product {
   name: string;
   price: number;
   description: string;
-  image_url: string; // ✅ Make required
+  image_url: string; 
 }
 
 export default function ProductDetailsPage() {
@@ -42,7 +42,7 @@ export default function ProductDetailsPage() {
               ? data.image_url
               : `https://via.placeholder.com/400x400?text=${encodeURIComponent(
                   data.name
-                )}`, // ✅ Always a string
+                )}`, 
         });
       }
       setLoading(false);
@@ -60,7 +60,7 @@ export default function ProductDetailsPage() {
       quantity: 1,
       name: product.name,
       price: product.price,
-      image: product.image_url, // ✅ Already string
+      image: product.image_url, 
     });
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 4000);
@@ -68,14 +68,14 @@ export default function ProductDetailsPage() {
 
   return (
     <main className="relative p-8 flex flex-col md:flex-row items-center gap-8 max-w-4xl mx-auto bg-white shadow-lg rounded-2xl">
-      {/* Product Image */}
+      
       <img
-        src={product.image_url} // ✅ Always string
+        src={product.image_url}
         alt={product.name}
         className="w-72 h-72 object-cover rounded-xl border"
       />
 
-      {/* Product Info */}
+      
       <div className="flex-1 text-center md:text-left">
         <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
         <p className="text-gray-600 mb-4">{product.description}</p>
@@ -98,7 +98,7 @@ export default function ProductDetailsPage() {
         </button>
       </div>
 
-      {/* Popup Message */}
+      
       {showPopup && (
         <div
           onClick={() => router.push("/cart")}

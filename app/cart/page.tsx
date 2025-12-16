@@ -15,7 +15,7 @@ export default function CartPage() {
   const [cartProducts, setCartProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch product details for items in cart
+  
   const loadCartProducts = async () => {
   if (cart.length === 0) {
     setCartProducts([]);
@@ -64,7 +64,7 @@ export default function CartPage() {
     );
   }
 
-  // Merge cart quantities with product details
+  
   const mergedCart = cart.map((item) => {
     const product = cartProducts.find((p) => p.id === item.id);
     return {
@@ -107,7 +107,7 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* Quantity & Remove */}
+            
             <div className="flex items-center gap-3">
               <span>Qty: {item.quantity}</span>
               <button
@@ -121,7 +121,7 @@ export default function CartPage() {
         ))}
       </ul>
 
-      {/* Total & Clear Cart */}
+      
       <div className="mt-8 text-right">
         <p className="text-xl font-semibold mb-3">Total Items: {getTotal()}</p>
         <button

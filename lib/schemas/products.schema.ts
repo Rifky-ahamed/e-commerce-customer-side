@@ -11,14 +11,9 @@ export const ProductSchemaItem = z.object({
   image_url: z.string().url().nullable().describe("Product image URL"),
 });
 
-/**
- * Response schema
- * Array of products
- */
+
 export const ProductsResponseSchema = z.array(ProductSchemaItem);
 
-/**
- * Types
- */
+
 export type ProductItem = z.infer<typeof ProductSchemaItem>;
 export type ProductsResponse = z.infer<typeof ProductsResponseSchema>;

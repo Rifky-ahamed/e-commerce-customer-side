@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-// ✅ Types for orders and nested order_items
+
 interface OrderItem {
   quantity: number;
   price: number;
@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if not logged in
+  
   useEffect(() => {
     if (!authLoading && !user) {
       toast.error("You are not logged in!");
@@ -37,7 +37,7 @@ export default function ProfilePage() {
     }
   }, [authLoading, user, router]);
 
-  // Fetch orders + order_items + products
+  
  useEffect(() => {
   const fetchOrders = async () => {
     if (!user) return;
@@ -53,7 +53,7 @@ export default function ProfilePage() {
         console.error(data.error);
         setOrders([]);
       } else {
-        // Map to Order type
+        
         const typedOrders: Order[] = (data || []).map((order: any) => ({
           id: order.id,
           total: order.total,
@@ -86,7 +86,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-100 p-8 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Profile</h1>
 
-      {/* User Info */}
+      
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
         <h2 className="text-2xl font-semibold mb-4">User Info</h2>
         <p><strong>Name:</strong> {user.user_metadata?.name || "N/A"}</p>
@@ -106,7 +106,7 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      {/* Past Orders */}
+      
       <div className="bg-white p-6 rounded-xl shadow-md">
         <h2 className="text-2xl font-semibold mb-4">Past Orders</h2>
 
@@ -132,14 +132,14 @@ export default function ProfilePage() {
                   <tr key={order.id}>
                     <td className="border px-4 py-2">{order.id}</td>
 
-                    {/* Multiple products */}
+                   
                     <td className="border px-4 py-2">
                       {order.order_items.map((item, idx) => (
                         <div key={idx}>{item.product?.name || "Unknown Product"}</div>
                       ))}
                     </td>
 
-                    {/* Multiple quantities */}
+                    
                     <td className="border px-4 py-2">
                       {order.order_items.map((item, idx) => (
                         <div key={idx}>{item.quantity}</div>

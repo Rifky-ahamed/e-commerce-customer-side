@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // server-side only
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
 );
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -17,14 +17,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // 1️⃣ Get public URL for uploaded image
+
     const { data } = supabaseAdmin.storage
       .from("product-images")
       .getPublicUrl(image_file_name);
 
     if (!data?.publicUrl) throw new Error("Failed to get public URL");
 
-    // 2️⃣ Insert product
+ 
     const { error: insertError } = await supabaseAdmin.from("products").insert({
       name,
       description: description || "",

@@ -20,7 +20,6 @@ export async function GET() {
         `https://via.placeholder.com/300x300?text=${encodeURIComponent(item.name)}`,
     }));
 
-    // ✅ Validate response
     const response = ProductsResponseSchema.parse(formattedData);
 
     return NextResponse.json(response);

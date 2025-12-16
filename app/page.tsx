@@ -130,7 +130,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* Total Products */}
+          
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold mb-2">Total Products</h3>
               <p className="text-3xl font-bold text-blue-600">{products.length}</p>
@@ -139,7 +139,7 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            {/* Items in Cart */}
+           
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold mb-2">Items in Cart</h3>
               <p className="text-3xl font-bold text-green-600">

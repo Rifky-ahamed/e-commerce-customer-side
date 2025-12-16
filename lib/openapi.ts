@@ -36,7 +36,7 @@ registry.register("ProductsResponse", ProductsResponseSchema);
 registry.register("Order", OrderSchema);
 registry.register("OrdersResponse", OrdersResponseSchema);
 
-// Register Cart API path
+
 registry.registerPath({
   method: "post",
   path: "/api/cart",
@@ -166,7 +166,7 @@ registry.registerPath({
   },
 });
 
-// Register GET /api/products/fetch
+
 registry.registerPath({
   method: "get",
   path: "/api/products/fetch",

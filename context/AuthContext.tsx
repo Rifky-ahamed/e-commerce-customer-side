@@ -22,7 +22,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
 
-  // Ensure user exists in DB and fetch their role
+  
   const ensureUserRow = async (supabaseUser: User) => {
     try {
       const { id, email, user_metadata } = supabaseUser;
@@ -36,12 +36,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .single();
 
       if (fetchError && fetchError.code !== "PGRST116") {
-        // Ignore "row not found", throw other errors
+       
         throw fetchError;
       }
 
       if (!existingUser) {
-        // Insert new user with default role 'user'
         await supabase.from("users").insert({
           id,
           email,
@@ -56,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (err) {
       console.error("Failed to ensure user row:", err);
-      setRole("user"); // fallback
+      setRole("user"); 
     }
   };
 

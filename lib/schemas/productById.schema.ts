@@ -21,10 +21,10 @@ export const ProductSchema = z.object({
   updated_at: z.string().optional(),
 });
 
-/* ------------------ Response schema ------------------ */
+
 export const ProductsByIdResponseSchema = z.array(ProductSchema);
 
-/* ------------------ Types ------------------ */
+
 export type ProductsByIdRequest = z.infer<typeof ProductsByIdRequestSchema>;
 export type Product = z.infer<typeof ProductSchema>;
 export type ProductsByIdResponse = z.infer<typeof ProductsByIdResponseSchema>;

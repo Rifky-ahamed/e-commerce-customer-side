@@ -27,16 +27,11 @@ export const CheckoutSchema = z.object({
     .describe("List of cart items"),
 });
 
-/**
- * Checkout response schema
- */
+
 export const CheckoutResponseSchema = z.object({
   message: z.string(),
   order_id: z.number(),
 });
 
-/**
- * Types
- */
 export type CheckoutInput = z.infer<typeof CheckoutSchema>;
 export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;

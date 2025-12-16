@@ -51,7 +51,7 @@ export default function UploadProductPage() {
     setLoading(true);
 
     try {
-      // 1️⃣ Upload file to Supabase storage
+      
       const fileName = `${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("product-images")
@@ -59,7 +59,7 @@ export default function UploadProductPage() {
 
       if (uploadError) throw uploadError;
 
-      // 2️⃣ Call API route to insert product (server-side with service_role)
+      
       const response = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1️⃣ Sign in with Supabase Auth
+      
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -32,23 +32,22 @@ export default function LoginPage() {
 
       const userId = authData.user.id;
 
-      // 2️⃣ Fetch user role from your users table
       const { data: userRecord, error: dbError } = await supabase
         .from("users")
         .select("role")
         .eq("id", userId)
-        .single(); // fetch a single record
+        .single();
 
       if (dbError) throw dbError;
       if (!userRecord) throw new Error("User role not found!");
 
       const role = userRecord.role;
 
-      // 3️⃣ Redirect based on role (you can customize)
+      
       if (role === "admin") {
-        router.push("/admin"); // admin dashboard page
+        router.push("/admin"); 
       } else {
-        router.push("/"); // normal user dashboard
+        router.push("/"); 
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");

@@ -41,19 +41,18 @@ export default function SignupPage() {
       if (error) throw error;
 
       if (data.user) {
-        // Insert into users table with role
-       // Safe upsert: if email already exists, update name & role
+      
 const { error: dbError } = await supabase
   .from("users")
   .upsert(
     { id: data.user.id, email, name, role },
-    { onConflict: "email" } // prevent duplicate key error
+    { onConflict: "email" } 
   );
 
 if (dbError) throw dbError;
 
 
-        router.push("/"); // redirect
+        router.push("/"); 
       }
     } catch (err: any) {
       setError(err.message || "Signup failed. Try again.");
@@ -108,7 +107,7 @@ if (dbError) throw dbError;
           required
         />
 
-        {/* Role Select */}
+        
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
