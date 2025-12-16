@@ -1,34 +1,27 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
-import { z } from "zod";
-
-/* ------------------ ZOD SCHEMAS ------------------ */
-
-const CartItemSchema = z.object({
-  product_id: z.number(),
-  quantity: z.number().min(1),
-});
-
-const CheckoutSchema = z.object({
-  user_id: z.string(),
-  items: z.array(CartItemSchema),
-});
-
-/* ------------------ API HANDLER ------------------ */
+import {
+  CheckoutSchema,
+  CheckoutResponseSchema,
+} from "@/lib/schemas";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
     // ✅ Validate request
-    const { user_id, items } = CheckoutSchema.parse(body);
-
-    if (items.length === 0) {
+    const validation = CheckoutSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { message: "Cart is empty" },
+        {
+          error: "Validation failed",
+          details: validation.error.issues,
+        },
         { status: 400 }
       );
     }
+
+    const { user_id, items } = validation.data;
 
     /* -------- 1️⃣ Fetch product prices -------- */
     const productIds = items.map((i) => i.product_id);
@@ -39,7 +32,10 @@ export async function POST(req: Request) {
       .in("id", productIds);
 
     if (productError || !products) {
-      throw productError;
+      return NextResponse.json(
+        { error: "Failed to fetch products" },
+        { status: 500 }
+      );
     }
 
     /* -------- 2️⃣ Calculate total -------- */
@@ -56,7 +52,10 @@ export async function POST(req: Request) {
       .single();
 
     if (orderError || !order) {
-      throw orderError;
+      return NextResponse.json(
+        { error: "Failed to create order" },
+        { status: 500 }
+      );
     }
 
     /* -------- 4️⃣ Insert order items -------- */
@@ -75,16 +74,22 @@ export async function POST(req: Request) {
       .insert(orderItems);
 
     if (itemsError) {
-      throw itemsError;
+      return NextResponse.json(
+        { error: "Failed to create order items" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({
+    // ✅ Validate response (professional)
+    const response = CheckoutResponseSchema.parse({
       message: "Order placed successfully",
       order_id: order.id,
     });
-  } catch (err: any) {
+
+    return NextResponse.json(response);
+  } catch (err) {
     return NextResponse.json(
-      { message: err.message || "Checkout failed" },
+      { error: "Checkout failed" },
       { status: 500 }
     );
   }
