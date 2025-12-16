@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -24,23 +23,23 @@ export default function CheckoutPage() {
 
   // Fetch product details for cart items
   const loadProducts = async () => {
-    if (cart.length === 0) {
-      setProducts([]);
-      return;
-    }
+  if (cart.length === 0) {
+    setProducts([]);
+    return;
+  }
 
-    const ids = cart.map((item) => item.id);
-    const { data, error } = await supabase
-      .from("products")
-      .select("id, name, price")
-      .in("id", ids);
+  const response = await fetch("/api/products/by-ids", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ids: cart.map((item) => item.id),
+    }),
+  });
 
-    if (!error && data) {
-      setProducts(data.map(p => ({ id: p.id, name: p.name, price: Number(p.price) })));
-    } else {
-      console.error("Error fetching product details:", error);
-    }
-  };
+  const data = await response.json();
+  setProducts(data);
+};
+
 
   useEffect(() => {
     loadProducts();
@@ -66,50 +65,41 @@ export default function CheckoutPage() {
   }, 0);
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
+  if (cart.length === 0) return;
 
-    setLoading(true);
-    setError("");
-    setSuccess("");
+  setLoading(true);
+  setError("");
+  setSuccess("");
 
-    try {
-      // 1️⃣ Create order with total price
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert([{ user_id: user.id, total: totalPrice }])
-        .select()
-        .single();
-
-      if (orderError || !orderData) throw orderError || new Error("Failed to create order");
-
-      const orderId = orderData.id;
-
-      // 2️⃣ Prepare order items
-      const orderItems = cart.map((item) => {
-        const product = products.find((p) => p.id === item.id);
-        return {
-          order_id: orderId,
+  try {
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: user.id,
+        items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
-          price: product?.price || 0,
-        };
-      });
+        })),
+      }),
+    });
 
-      // 3️⃣ Insert order items
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
+    const data = await response.json();
 
-      // 4️⃣ Clear cart
-      await clearCart();
-
-      setSuccess("✅ Order placed successfully!");
-      setTimeout(() => router.push("/"), 2000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(data.message);
     }
-  };
+
+    await clearCart();
+    setSuccess("✅ Order placed successfully!");
+    setTimeout(() => router.push("/"), 2000);
+  } catch (err: any) {
+    setError(err.message || "Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen p-8 max-w-4xl mx-auto bg-white shadow-md rounded-xl">

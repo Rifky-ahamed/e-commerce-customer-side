@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { supabase } from "@/lib/supabaseClient";
 
 interface Product {
   id: number;
   name: string;
   price: number;
-  image: string; // ✅ always string
+  image: string; 
 }
 
 export default function CartPage() {
@@ -18,33 +17,35 @@ export default function CartPage() {
 
   // Fetch product details for items in cart
   const loadCartProducts = async () => {
-    if (cart.length === 0) {
-      setCartProducts([]);
-      setLoading(false);
-      return;
-    }
-
-    const productIds = cart.map((item) => item.id);
-    const { data: products, error } = await supabase
-      .from("products")
-      .select("id, name, price, image_url")
-      .in("id", productIds);
-
-    if (error) {
-      console.error("Error fetching product details:", error);
-      setCartProducts([]);
-    } else {
-      setCartProducts(
-        products.map((p: any) => ({
-          id: p.id,
-          name: p.name || "Unknown Product",
-          price: Number(p.price) || 0,
-          image: p.image_url || "/placeholder.png", // ✅ fallback
-        }))
-      );
-    }
+  if (cart.length === 0) {
+    setCartProducts([]);
     setLoading(false);
-  };
+    return;
+  }
+
+  setLoading(true);
+
+  const response = await fetch("/api/cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      productIds: cart.map((item) => item.id),
+    }),
+  });
+
+  const products = await response.json();
+
+  setCartProducts(
+    products.map((p: any) => ({
+      id: p.id,
+      name: p.name || "Unknown Product",
+      price: Number(p.price) || 0,
+      image: p.image_url || "/placeholder.png",
+    }))
+  );
+
+  setLoading(false);
+};
 
   useEffect(() => {
     loadCartProducts();
