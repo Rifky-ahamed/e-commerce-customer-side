@@ -8,7 +8,9 @@ import {
   CheckoutResponseSchema,
   ProductsByIdRequestSchema,
   ProductsByIdResponseSchema,
-  ProductSchema
+  ProductSchema,
+  ProductSchemaItem,
+  ProductsResponseSchema
 } from "./schemas";
 
 export const registry = new OpenAPIRegistry();
@@ -27,7 +29,8 @@ registry.register("CheckoutResponse", CheckoutResponseSchema);
 registry.register("ProductsByIdRequest", ProductsByIdRequestSchema);
 registry.register("Product", ProductSchema);
 registry.register("ProductsByIdResponse", ProductsByIdResponseSchema);
-
+registry.register("ProductItem", ProductSchemaItem);
+registry.register("ProductsResponse", ProductsResponseSchema);
 
 
 // Register Cart API path
@@ -160,6 +163,32 @@ registry.registerPath({
   },
 });
 
+// Register GET /api/products/fetch
+registry.registerPath({
+  method: "get",
+  path: "/api/products/fetch",
+  summary: "Fetch products",
+  description: "Returns a list of all products",
+  tags: ["Products"],
+  responses: {
+    200: {
+      description: "List of products",
+      content: {
+        "application/json": {
+          schema: ProductsResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
 
 // Generate OpenAPI document
 export function getApiDocs() {

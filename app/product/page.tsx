@@ -54,31 +54,24 @@ export default function ProductListingPage() {
 
   // Fetch products
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data, error } = await supabase.from("products").select("*");
-      if (error) {
-        console.error("Supabase error:", error);
-        setProducts([]);
-      } else if (data) {
-        const formattedData = data.map((item: any) => ({
-          id: item.id.toString(),
-          name: item.name,
-          price: Number(item.price),
-          description: item.description,
-          image_url:
-            item.image_url ||
-            `https://via.placeholder.com/300x300?text=${encodeURIComponent(
-              item.name
-            )}`,
-        }));
-        setProducts(formattedData);
-      }
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/products/fetch");
+      if (!res.ok) throw new Error("Failed to fetch products");
+      const data: Product[] = await res.json();
+      setProducts(data);
+    } catch (err) {
+      console.error("API fetch error:", err);
+      setProducts([]);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    fetchProducts();
-  }, []);
+  fetchProducts();
+}, []);
+
 
   return (
     <main className="p-8">
